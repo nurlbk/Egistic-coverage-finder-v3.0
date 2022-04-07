@@ -33,7 +33,7 @@ class calculateWidth(Tractor):
         borders = cellBorders(self.coordinates)  # Границы поля
 
         """ Нужна доработка """
-        grid_size = self.line_limit  # Размер сетки
+        grid_size = self.line_limit / 1.5  # Размер сетки
 
         self.grid.set_grid(borders[1], grid_size)  # Создание сетки с границами и размером сетки
 
@@ -90,7 +90,72 @@ class calculateWidth(Tractor):
                     # widths.append(round(2 * round(min_height, 1)) / 2)
 
                 self.grid.get_grid(parsedGridPoint).append(i)
+
+        # Алгоритм который высчитывет длину высоту с точки на линию как ширина трактора
         elif count_type == 2:
+            for i in range(len(self.coordinates) - 1):
+
+                near_Points = []
+                min_height = 100
+
+                # Определяем индексы сетки для выбранной точки
+                parsedGridPoint = getCell([(self.coordinates[i][0] + self.coordinates[i + 1][0]) / 2,
+                                           (self.coordinates[i][1] + self.coordinates[i + 1][1]) / 2],
+                                          [0, 0],
+                                          self.grid.get_cell_size())
+
+                """ Нужна доработка """
+                # Ограничение по рамке
+                # area_limit_percent = 0.2
+                # horizontal_limit = self.grid.get_grid_horizontal_size()
+                # vertical_limit = self.grid.get_grid_vertical_size()
+
+                # if horizontal_limit * area_limit_percent > parsedGridPoint[0] or\
+                #         horizontal_limit * (1 - area_limit_percent) < parsedGridPoint[0] or\
+                #         vertical_limit * area_limit_percent > parsedGridPoint[1] or\
+                #         vertical_limit * (1 - area_limit_percent) < parsedGridPoint[1]:
+                #     continue
+
+                # Проверка всех ближних точек которые находятся в зоне 3x3
+                for y in range(3):
+                    for z in range(3):
+                        for l in range(
+                                len(self.grid.get_grid([parsedGridPoint[0] - 1 + y,
+                                                        parsedGridPoint[1] - 1 + z]))):
+                            # Добавляем каждую точку из блока близко находящейся сетки
+                            comparative_Point_id = \
+                                self.grid.get_grid([parsedGridPoint[0] - 1 + y,
+                                                    parsedGridPoint[1] - 1 + z])[l]
+                            near_Points.append(comparative_Point_id)
+                near_Points.sort()
+
+                # Тут вычисляется все отобранные ближные точки
+                for j in range(len(near_Points)):
+
+                    # Отбор по углу напавления
+                    if abs(getDirection(self.coordinates[i],
+                                        self.coordinates[i + 1]) -
+                           getDirection(self.coordinates[near_Points[j] + 1],
+                                        self.coordinates[near_Points[j] - 1])) < 5:  # угол
+
+                        # Измеряем длину высоты отпущенной близкой точки
+                        probably_height = getHeight(self.coordinates[near_Points[j]],
+                                                    self.coordinates[i],
+                                                    self.coordinates[i + 1])
+
+                        # Находим самую ближнию точку
+                        if min_height > probably_height:
+                            min_height = probably_height
+
+                # Округление и добавление точки в массив ширин
+                if min_height != 100:
+                    widths.append(round(min_height, 1))
+                    # widths.append(round(2 * round(min_height, 1)) / 2)
+
+                # Добавление точек в сетку
+                self.grid.get_grid(parsedGridPoint).append(i)
+                i += 1
+        elif count_type == 3:
             while i < len(self.coordinates) - 2:
                 # ограничение по рамке
                 # if 30 > parsedGridPoint[0] or parsedGridPoint[0] > 120 or \
@@ -141,12 +206,13 @@ class calculateWidth(Tractor):
 
                 self.grid.get_grid(parsedGridPoint).append(i)
                 i += 1
+        elif count_type == 4:
 
-        # Алгоритм который высчитывет длину высоту с точки на линию как ширина трактора
-        elif count_type == 3:
+            sum_of_distances = 0
+            sum_of_areas = 0
             for i in range(len(self.coordinates) - 1):
-
                 near_Points = []
+
                 min_height = 100
 
                 # Определяем индексы сетки для выбранной точки
@@ -173,7 +239,6 @@ class calculateWidth(Tractor):
                         for l in range(
                                 len(self.grid.get_grid([parsedGridPoint[0] - 1 + y,
                                                         parsedGridPoint[1] - 1 + z]))):
-
                             # Добавляем каждую точку из блока близко находящейся сетки
                             comparative_Point_id = \
                                 self.grid.get_grid([parsedGridPoint[0] - 1 + y,
@@ -199,14 +264,18 @@ class calculateWidth(Tractor):
                         if min_height > probably_height:
                             min_height = probably_height
 
-                # Округление и добавление точки в массив ширин
+                            # Округление и добавление точки в массив ширин
                 if min_height != 100:
-                    widths.append(round(min_height, 1))
-                    # widths.append(round(2 * round(min_height, 1)) / 2)
+                    distance_between_points = findDistance(self.coordinates[i],
+                                                           self.coordinates[i + 1])
+                    sum_of_distances += distance_between_points
+                    sum_of_areas += distance_between_points * min_height
 
                 # Добавление точек в сетку
                 self.grid.get_grid(parsedGridPoint).append(i)
                 i += 1
+
+            return [sum_of_areas / sum_of_distances]
 
         widths.sort()
         return widths
@@ -216,14 +285,13 @@ class calculateWidth(Tractor):
         array_of_widths = self.getWidth(self.count_type)
 
         # Создаем DataFrame
-        data = pd.DataFrame(array_of_widths)
+        # data = pd.DataFrame(array_of_widths)
 
         # Указываем шаг гистограммы
-        a = int(2 * array_of_widths[len(array_of_widths) - 1])
-        data.hist(bins=a)
+        # a = int(2 * array_of_widths[len(array_of_widths) - 1])
+        # data.hist(bins=a)
 
         # Показ гистограммы
-        plt.show()
+        # plt.show()
         # print(data.describe())
-
         return float(mean(array_of_widths))

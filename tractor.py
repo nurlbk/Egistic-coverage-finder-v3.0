@@ -58,9 +58,9 @@ class Tractor:
 
         array_of_distances.sort()
         # print("Mean on Distances:", mean(array_of_distances))
-        self.line_limit = array_of_distances[int(len(array_of_distances) / 2.5)] * 1.15
+        self.line_limit = array_of_distances[int(len(array_of_distances) / 6)] * 1.0
         # Тут мы берем 1/3 от длин и +15%
-        print("Line limit:", self.line_limit)
+        # print("Line limit:", self.line_limit)
 
         # data = pd.DataFrame(array_of_distances)
         # a = int(2 * array_of_distances[len(array_of_distances) - 1])
